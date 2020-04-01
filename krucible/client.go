@@ -70,7 +70,7 @@ type Cluster struct {
 	ExpiresAt string `json:"expiresAt"`
 }
 
-type ClusterResult struct {
+type CreateClusterResult struct {
 	Cluster   Cluster
 	Clientset *kubernetes.Clientset
 }
@@ -112,22 +112,22 @@ func (c *client) GetClusterClientset(id string) (result *kubernetes.Clientset, e
 	return kubernetes.NewForConfig(kubeConfig)
 }
 
-func (c *client) CreateCluster(createConfig CreateClusterConfig) (ClusterResult, error) {
+func (c *client) CreateCluster(createConfig CreateClusterConfig) (CreateClusterResult, error) {
 	resp, err := c.makeRequestWithBody("POST", "/clusters", CreateClusterConfig{
 		DisplayName: createConfig.DisplayName,
 	})
 	if err != nil {
-		return ClusterResult{}, err
+		return CreateClusterResult{}, err
 	}
 
 	if resp.StatusCode != 201 {
-		return ClusterResult{}, fmt.Errorf("Unexpected status code %d", resp.StatusCode)
+		return CreateClusterResult{}, fmt.Errorf("Unexpected status code %d", resp.StatusCode)
 	}
 
-	var result ClusterResult
+	var result CreateClusterResult
 	err = json.NewDecoder(resp.Body).Decode(&result.Cluster)
 	if err != nil {
-		return ClusterResult{}, err
+		return CreateClusterResult{}, err
 	}
 
 	for result.Cluster.State == "provisioning" {

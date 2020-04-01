@@ -1,6 +1,9 @@
 Krucible Go Client
 ==================
 
+This is the Go client for [Krucible](https://usekrucible.com), the platform for
+creating ephemeral Kubernetes clusters optimised for testing and development.
+
 Installation
 ------------
 

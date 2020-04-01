@@ -66,8 +66,8 @@ type Cluster struct {
 	ConnectionDetails struct {
 		Server string `json:"server"`
 	} `json:"connectionDetails"`
-	CreatedAt string `json:"createdAt"`
-	ExpiresAt string `json:"expiresAt"`
+	CreatedAt time.Time `json:"createdAt"`
+	ExpiresAt time.Time `json:"expiresAt"`
 }
 
 type CreateClusterResult struct {

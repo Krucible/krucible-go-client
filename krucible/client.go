@@ -21,17 +21,17 @@ type ClientConfig struct {
 	APIKeySecret string
 }
 
-type client struct {
+type Client struct {
 	accountURL string
 	config     ClientConfig
 	httpClient http.Client
 }
 
-func (c *client) makeRequest(method, apiPath string) (*http.Response, error) {
+func (c *Client) makeRequest(method, apiPath string) (*http.Response, error) {
 	return c.makeRequestWithBody(method, apiPath, http.NoBody)
 }
 
-func (c *client) makeRequestWithBody(method, apiPath string, body interface{}) (*http.Response, error) {
+func (c *Client) makeRequestWithBody(method, apiPath string, body interface{}) (*http.Response, error) {
 	jsonBody, err := json.Marshal(body)
 	if err != nil {
 		return &http.Response{}, err
@@ -75,7 +75,7 @@ type CreateClusterResult struct {
 	Clientset *kubernetes.Clientset
 }
 
-func (c *client) GetCluster(id string) (result Cluster, err error) {
+func (c *Client) GetCluster(id string) (result Cluster, err error) {
 	resp, err := c.makeRequest("GET", "/clusters/"+id)
 	if err != nil {
 		return result, err
@@ -89,7 +89,7 @@ func (c *client) GetCluster(id string) (result Cluster, err error) {
 	return result, err
 }
 
-func (c *client) GetClusterClientset(id string) (result *kubernetes.Clientset, err error) {
+func (c *Client) GetClusterClientset(id string) (result *kubernetes.Clientset, err error) {
 	resp, err := c.makeRequest("GET", "/clusters/"+id+"/kube-config")
 	if err != nil {
 		return result, err
@@ -112,7 +112,7 @@ func (c *client) GetClusterClientset(id string) (result *kubernetes.Clientset, e
 	return kubernetes.NewForConfig(kubeConfig)
 }
 
-func (c *client) CreateCluster(createConfig CreateClusterConfig) (CreateClusterResult, error) {
+func (c *Client) CreateCluster(createConfig CreateClusterConfig) (CreateClusterResult, error) {
 	resp, err := c.makeRequestWithBody("POST", "/clusters", CreateClusterConfig{
 		DisplayName: createConfig.DisplayName,
 	})
@@ -139,7 +139,7 @@ func (c *client) CreateCluster(createConfig CreateClusterConfig) (CreateClusterR
 	return result, nil
 }
 
-func NewClient(config ClientConfig) *client {
+func NewClient(config ClientConfig) *Client {
 	baseURL := config.BaseURL
 	if baseURL == "" {
 		baseURL = "https://usekrucible.com/api"
@@ -154,7 +154,7 @@ func NewClient(config ClientConfig) *client {
 		config.AccountID,
 	)
 
-	c := client{
+	c := Client{
 		accountURL: accountURL,
 		config: ClientConfig{
 			BaseURL:      parsedURL.String(),

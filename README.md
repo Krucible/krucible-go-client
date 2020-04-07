@@ -30,24 +30,24 @@ client := krucible.NewClient(krucible.ClientConfig{
 ### Creating a cluster
 You should then be able to create new Krucible clusters with `CreateCluster`:
 ```
-createClusterResult, err := client.CreateCluster(krucible.CreateClusterConfig{
+cluster, clientset, err := client.CreateCluster(krucible.CreateClusterConfig{
 	DisplayName: "my-krucible-cluster",
 })
 ```
 
-The createClusterResult is a `krucible.CreateClusterResult` struct. This contains both a
-`krucible.Cluster` struct, containing metadata about your cluster, and a
+CreateCluster returns a `krucible.Cluster` struct, containing metadata about
+your cluster, and a
 [`kubernetes.Clientset`](https://godoc.org/k8s.io/client-go/kubernetes#Clientset)
 that is set up to connect to the new cluster.
 
 Getting the cluster expiry time:
 ```
-fmt.Println(createClusterResult.Cluster.ExpiresAt)
+fmt.Println(cluster.ExpiresAt)
 ```
 
 Listing the pods in the default namespace:
 ```
-pods, err := createClusterResult.Clientset.CoreV1().
+pods, err := clientset.CoreV1().
 	Pods("default").
 	List(
 		context.Background(),

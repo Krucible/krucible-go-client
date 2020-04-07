@@ -59,6 +59,7 @@ type CreateClusterConfig struct {
 	DisplayName string `json:"displayName"`
 }
 
+// Cluster contains metadata about a Krucible cluster.
 type Cluster struct {
 	ID                string `json:"id"`
 	DisplayName       string `json:"displayName"`
@@ -70,11 +71,7 @@ type Cluster struct {
 	ExpiresAt time.Time `json:"expiresAt"`
 }
 
-type CreateClusterResult struct {
-	Cluster   Cluster
-	Clientset *kubernetes.Clientset
-}
-
+// GetCluster fetches metadata about the given Krucible cluster.
 func (c *Client) GetCluster(id string) (result Cluster, err error) {
 	resp, err := c.makeRequest("GET", "/clusters/"+id)
 	if err != nil {
@@ -89,6 +86,8 @@ func (c *Client) GetCluster(id string) (result Cluster, err error) {
 	return result, err
 }
 
+// GetClusterClientset returns a set of clients for a given Krucible cluster.
+// These can be used to connect to the cluster as usual.
 func (c *Client) GetClusterClientset(id string) (result *kubernetes.Clientset, err error) {
 	resp, err := c.makeRequest("GET", "/clusters/"+id+"/kube-config")
 	if err != nil {
@@ -112,33 +111,38 @@ func (c *Client) GetClusterClientset(id string) (result *kubernetes.Clientset, e
 	return kubernetes.NewForConfig(kubeConfig)
 }
 
-func (c *Client) CreateCluster(createConfig CreateClusterConfig) (CreateClusterResult, error) {
+// CreateCluster creates a Krucible cluster with the given configuration. Both
+// a cluster, containing metadata about the created cluster, and a client,
+// configured for connectivity to the cluster, are returned, both of which
+// should be valid providing that the returned error is nil.
+func (c *Client) CreateCluster(createConfig CreateClusterConfig) (cluster Cluster, clientset *kubernetes.Clientset, err error) {
 	resp, err := c.makeRequestWithBody("POST", "/clusters", CreateClusterConfig{
 		DisplayName: createConfig.DisplayName,
 	})
 	if err != nil {
-		return CreateClusterResult{}, err
+		return
 	}
 
 	if resp.StatusCode != 201 {
-		return CreateClusterResult{}, fmt.Errorf("Unexpected status code %d", resp.StatusCode)
+		return Cluster{}, nil, fmt.Errorf("Unexpected status code %d", resp.StatusCode)
 	}
 
-	var result CreateClusterResult
-	err = json.NewDecoder(resp.Body).Decode(&result.Cluster)
+	err = json.NewDecoder(resp.Body).Decode(&cluster)
 	if err != nil {
-		return CreateClusterResult{}, err
+		return
 	}
 
-	for result.Cluster.State == "provisioning" {
+	for cluster.State == "provisioning" {
 		time.Sleep(1)
-		result.Cluster, err = c.GetCluster(result.Cluster.ID)
+		cluster, err = c.GetCluster(cluster.ID)
 	}
 
-	result.Clientset, err = c.GetClusterClientset(result.Cluster.ID)
-	return result, nil
+	clientset, err = c.GetClusterClientset(cluster.ID)
+	return
 }
 
+// NewClient creates a new Krucible client with the given connection
+// information.
 func NewClient(config ClientConfig) *Client {
 	baseURL := config.BaseURL
 	if baseURL == "" {

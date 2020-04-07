@@ -24,7 +24,7 @@ func TestNewClientUnauthorised(t *testing.T) {
 		APIKeyId:     "",
 		APIKeySecret: "",
 	})
-	_, err := c.CreateCluster(CreateClusterConfig{
+	_, _, err := c.CreateCluster(CreateClusterConfig{
 		DisplayName: "stuff",
 	})
 	assert.Equal(t, err.Error(), "Unexpected status code 404")
@@ -37,11 +37,11 @@ func TestNewClientAuthorised(t *testing.T) {
 		APIKeyId:     "146d98c4-327d-4a2d-b85a-49590246e136",
 		APIKeySecret: "0da8afd2911904aa9bad8862a3e7478a",
 	})
-	clusterResult, err := c.CreateCluster(CreateClusterConfig{
+	_, clientset, err := c.CreateCluster(CreateClusterConfig{
 		DisplayName: "stuff",
 	})
 	assert.Nil(t, err)
-	pods, err := clusterResult.Clientset.CoreV1().Pods("kube-system").List(context.Background(), metav1.ListOptions{})
+	pods, err := clientset.CoreV1().Pods("kube-system").List(context.Background(), metav1.ListOptions{})
 	assert.Nil(t, err)
 	assert.NotEmpty(t, pods.Items)
 }

@@ -57,6 +57,11 @@ func (c *Client) makeRequestWithBody(method, apiPath string, body interface{}) (
 
 type CreateClusterConfig struct {
 	DisplayName string `json:"displayName"`
+
+	// DurationInHours is the number of hours the cluster should be available
+	// for. If the cluster should run indefinitely then supply a nil pointer,
+	// otherwise an integer between 1 and 6 should be provided.
+	DurationInHours *int `json:"durationInHours"` // pointer because it could be null
 }
 
 // Cluster contains metadata about a Krucible cluster.

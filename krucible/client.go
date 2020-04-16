@@ -122,7 +122,8 @@ func (c *Client) GetClusterClientset(id string) (result *kubernetes.Clientset, e
 // should be valid providing that the returned error is nil.
 func (c *Client) CreateCluster(createConfig CreateClusterConfig) (cluster Cluster, clientset *kubernetes.Clientset, err error) {
 	resp, err := c.makeRequestWithBody("POST", "/clusters", CreateClusterConfig{
-		DisplayName: createConfig.DisplayName,
+		DisplayName:     createConfig.DisplayName,
+		DurationInHours: createConfig.DurationInHours,
 	})
 	if err != nil {
 		return

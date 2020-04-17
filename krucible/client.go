@@ -213,6 +213,25 @@ func (c *Client) GetSnapshot(id string) (result Snapshot, err error) {
 	return
 }
 
+func (c *Client) GetSnapshots() (result []Snapshot, err error) {
+	resp, err := c.makeRequest("GET", "/snapshots/")
+	if err != nil {
+		return
+	}
+
+	if resp.StatusCode != 200 {
+		return result, fmt.Errorf("Unexpected status code %d", resp.StatusCode)
+	}
+
+	snapshotBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal(snapshotBytes, &result)
+	return
+}
+
 // NewClient creates a new Krucible client with the given connection
 // information.
 func NewClient(config ClientConfig) *Client {

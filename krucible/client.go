@@ -39,6 +39,24 @@ type Client struct {
 	httpClient http.Client
 }
 
+func (c *Client) makeJSONRequestWithBody(method, apiPath string, body interface{}, expectedStatus int, target interface{}) error {
+	resp, err := c.makeRequestWithBody(method, apiPath, body)
+	defer resp.Body.Close()
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != expectedStatus {
+		return fmt.Errorf("Unexpected response code: %d", resp.StatusCode)
+	}
+
+	return json.NewDecoder(resp.Body).Decode(target)
+}
+
+func (c *Client) makeJSONRequest(method, apiPath string, expectedStatus int, target interface{}) error {
+	return c.makeJSONRequestWithBody(method, apiPath, http.NoBody, expectedStatus, target)
+}
+
 func (c *Client) makeRequest(method, apiPath string) (*http.Response, error) {
 	return c.makeRequestWithBody(method, apiPath, http.NoBody)
 }
@@ -58,7 +76,6 @@ func (c *Client) makeRequestWithBody(method, apiPath string, body interface{}) (
 	req.Header.Add("Api-Key-Id", c.config.APIKeyId)
 	req.Header.Add("Api-Key-Secret", c.config.APIKeySecret)
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Accept-Encoding", "gzip, deflate, br")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -78,6 +95,8 @@ type CreateClusterConfig struct {
 	// for. If the cluster should run indefinitely then supply a nil pointer,
 	// otherwise an integer between 1 and 6 should be provided.
 	DurationInHours *int `json:"durationInHours"` // pointer because it could be null
+
+	SnapshotID string `json:"snapshotId,omitempty"`
 }
 
 // Cluster contains metadata about a Krucible cluster.
@@ -105,16 +124,7 @@ func (c *Client) GetCluster(id string) (result Cluster, err error) {
 		return result, fmt.Errorf("Cluster ID must be non-empty")
 	}
 
-	resp, err := c.makeRequest("GET", "/clusters/"+id)
-	if err != nil {
-		return result, err
-	}
-
-	if resp.StatusCode != 200 {
-		return result, fmt.Errorf("Unexpected status code %d", resp.StatusCode)
-	}
-
-	err = json.NewDecoder(resp.Body).Decode(&result)
+	err = c.makeJSONRequest("GET", "/clusters/"+id, 200, &result)
 	return result, err
 }
 
@@ -122,6 +132,7 @@ func (c *Client) GetCluster(id string) (result Cluster, err error) {
 // These can be used to connect to the cluster as usual.
 func (c *Client) GetClusterClientset(id string) (result *kubernetes.Clientset, err error) {
 	resp, err := c.makeRequest("GET", "/clusters/"+id+"/kube-config")
+	defer resp.Body.Close()
 	if err != nil {
 		return result, err
 	}
@@ -148,16 +159,7 @@ func (c *Client) GetClusterClientset(id string) (result *kubernetes.Clientset, e
 // configured for connectivity to the cluster, are returned, both of which
 // should be valid providing that the returned error is nil.
 func (c *Client) CreateCluster(createConfig CreateClusterConfig) (cluster Cluster, clientset *kubernetes.Clientset, err error) {
-	resp, err := c.makeRequestWithBody("POST", "/clusters", createConfig)
-	if err != nil {
-		return
-	}
-
-	if resp.StatusCode != 201 {
-		return Cluster{}, nil, fmt.Errorf("Unexpected status code %d", resp.StatusCode)
-	}
-
-	err = json.NewDecoder(resp.Body).Decode(&cluster)
+	err = c.makeJSONRequestWithBody("POST", "/clusters", createConfig, 201, &cluster)
 	if err != nil {
 		return
 	}
@@ -172,21 +174,7 @@ func (c *Client) CreateCluster(createConfig CreateClusterConfig) (cluster Cluste
 }
 
 func (c *Client) CreateSnapshot(createConfig CreateSnapshotConfig) (result Snapshot, err error) {
-	resp, err := c.makeRequestWithBody("POST", "/snapshots", createConfig)
-	if err != nil {
-		return
-	}
-
-	if resp.StatusCode != 202 {
-		return result, fmt.Errorf("Unexpected status code %d", resp.StatusCode)
-	}
-
-	snapshotBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return
-	}
-
-	err = json.Unmarshal(snapshotBytes, &result)
+	err = c.makeJSONRequestWithBody("POST", "/snapshots", createConfig, 202, &result)
 	return
 }
 
@@ -195,40 +183,12 @@ func (c *Client) GetSnapshot(id string) (result Snapshot, err error) {
 		return result, fmt.Errorf("Snapshot ID must be non-empty")
 	}
 
-	resp, err := c.makeRequest("GET", "/snapshots/"+id)
-	if err != nil {
-		return
-	}
-
-	if resp.StatusCode != 200 {
-		return result, fmt.Errorf("Unexpected status code %d", resp.StatusCode)
-	}
-
-	snapshotBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return
-	}
-
-	err = json.Unmarshal(snapshotBytes, &result)
+	c.makeJSONRequest("GET", "/snapshots/"+id, 200, &result)
 	return
 }
 
 func (c *Client) GetSnapshots() (result []Snapshot, err error) {
-	resp, err := c.makeRequest("GET", "/snapshots/")
-	if err != nil {
-		return
-	}
-
-	if resp.StatusCode != 200 {
-		return result, fmt.Errorf("Unexpected status code %d", resp.StatusCode)
-	}
-
-	snapshotBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return
-	}
-
-	err = json.Unmarshal(snapshotBytes, &result)
+	err = c.makeJSONRequest("GET", "/snapshots/", 200, &result)
 	return
 }
 

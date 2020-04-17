@@ -14,6 +14,18 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+func getIntPointer(i int) *int {
+	return &i
+}
+
+var OneHour *int = getIntPointer(1)
+var TwoHours *int = getIntPointer(2)
+var ThreeHours *int = getIntPointer(3)
+var FourHours *int = getIntPointer(4)
+var FiveHours *int = getIntPointer(5)
+var SixHours *int = getIntPointer(6)
+var Permanent *int = nil
+
 type ClientConfig struct {
 	BaseURL      string
 	AccountID    string
@@ -55,6 +67,10 @@ func (c *Client) makeRequestWithBody(method, apiPath string, body interface{}) (
 	return resp, nil
 }
 
+type CreateSnapshotConfig struct {
+	ClusterID string `json:"clusterId"`
+}
+
 type CreateClusterConfig struct {
 	DisplayName string `json:"displayName"`
 
@@ -76,8 +92,19 @@ type Cluster struct {
 	ExpiresAt time.Time `json:"expiresAt"`
 }
 
+type Snapshot struct {
+	ID        string    `json:"id"`
+	ClusterID string    `json:"clusterId"`
+	State     string    `json:"state"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
 // GetCluster fetches metadata about the given Krucible cluster.
 func (c *Client) GetCluster(id string) (result Cluster, err error) {
+	if id == "" {
+		return result, fmt.Errorf("Cluster ID must be non-empty")
+	}
+
 	resp, err := c.makeRequest("GET", "/clusters/"+id)
 	if err != nil {
 		return result, err
@@ -121,10 +148,7 @@ func (c *Client) GetClusterClientset(id string) (result *kubernetes.Clientset, e
 // configured for connectivity to the cluster, are returned, both of which
 // should be valid providing that the returned error is nil.
 func (c *Client) CreateCluster(createConfig CreateClusterConfig) (cluster Cluster, clientset *kubernetes.Clientset, err error) {
-	resp, err := c.makeRequestWithBody("POST", "/clusters", CreateClusterConfig{
-		DisplayName:     createConfig.DisplayName,
-		DurationInHours: createConfig.DurationInHours,
-	})
+	resp, err := c.makeRequestWithBody("POST", "/clusters", createConfig)
 	if err != nil {
 		return
 	}
@@ -144,6 +168,48 @@ func (c *Client) CreateCluster(createConfig CreateClusterConfig) (cluster Cluste
 	}
 
 	clientset, err = c.GetClusterClientset(cluster.ID)
+	return
+}
+
+func (c *Client) CreateSnapshot(createConfig CreateSnapshotConfig) (result Snapshot, err error) {
+	resp, err := c.makeRequestWithBody("POST", "/snapshots", createConfig)
+	if err != nil {
+		return
+	}
+
+	if resp.StatusCode != 202 {
+		return result, fmt.Errorf("Unexpected status code %d", resp.StatusCode)
+	}
+
+	snapshotBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal(snapshotBytes, &result)
+	return
+}
+
+func (c *Client) GetSnapshot(id string) (result Snapshot, err error) {
+	if id == "" {
+		return result, fmt.Errorf("Snapshot ID must be non-empty")
+	}
+
+	resp, err := c.makeRequest("GET", "/snapshots/"+id)
+	if err != nil {
+		return
+	}
+
+	if resp.StatusCode != 200 {
+		return result, fmt.Errorf("Unexpected status code %d", resp.StatusCode)
+	}
+
+	snapshotBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal(snapshotBytes, &result)
 	return
 }
 

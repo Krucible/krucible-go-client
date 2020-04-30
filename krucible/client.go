@@ -105,7 +105,8 @@ type Cluster struct {
 	DisplayName       string `json:"displayName"`
 	State             string `json:"state"`
 	ConnectionDetails struct {
-		Server string `json:"server"`
+		Server               string `json:"server"`
+		CertificateAuthority string `json:"certificateAuthority"`
 	} `json:"connectionDetails"`
 	CreatedAt time.Time `json:"createdAt"`
 	ExpiresAt time.Time `json:"expiresAt"`

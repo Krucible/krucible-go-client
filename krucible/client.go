@@ -112,8 +112,11 @@ type Cluster struct {
 }
 
 type Snapshot struct {
-	ID        string    `json:"id"`
-	ClusterID string    `json:"clusterId"`
+	ID      string `json:"id"`
+	Cluster struct {
+		ID          string `json:"id"`
+		DisplayName string `json:"displayName"`
+	} `json:"cluster"`
 	State     string    `json:"state"`
 	CreatedAt time.Time `json:"createdAt"`
 }

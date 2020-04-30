@@ -132,6 +132,11 @@ func (c *Client) GetCluster(id string) (result Cluster, err error) {
 	return result, err
 }
 
+func (c *Client) GetClusters() (result []Cluster, err error) {
+	err = c.makeJSONRequest("GET", "/clusters/", 200, &result)
+	return
+}
+
 // GetClusterClientset returns a set of clients for a given Krucible cluster.
 // These can be used to connect to the cluster as usual.
 func (c *Client) GetClusterClientset(id string) (result *kubernetes.Clientset, err error) {

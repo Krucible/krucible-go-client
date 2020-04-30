@@ -137,9 +137,8 @@ func (c *Client) GetClusters() (result []Cluster, err error) {
 	return
 }
 
-// GetClusterClientset returns a set of clients for a given Krucible cluster.
-// These can be used to connect to the cluster as usual.
-func (c *Client) GetClusterClientset(id string) (result *kubernetes.Clientset, err error) {
+// GetClusterKubeConfig returns a cluster's kubeconfig as a byte array.
+func (c *Client) GetClusterKubeConfig(id string) (result []byte, err error) {
 	resp, err := c.makeRequest("GET", "/clusters/"+id+"/kube-config")
 	defer resp.Body.Close()
 	if err != nil {
@@ -150,7 +149,13 @@ func (c *Client) GetClusterClientset(id string) (result *kubernetes.Clientset, e
 		return result, fmt.Errorf("Unexpected status code %d", resp.StatusCode)
 	}
 
-	kubeConfigBytes, err := ioutil.ReadAll(resp.Body)
+	return ioutil.ReadAll(resp.Body)
+}
+
+// GetClusterClientset returns a set of clients for a given Krucible cluster.
+// These can be used to connect to the cluster as usual.
+func (c *Client) GetClusterClientset(id string) (result *kubernetes.Clientset, err error) {
+	kubeConfigBytes, err := c.GetClusterKubeConfig(id)
 	if err != nil {
 		return result, err
 	}

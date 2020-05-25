@@ -107,6 +107,7 @@ type Cluster struct {
 	ConnectionDetails struct {
 		Server               string `json:"server"`
 		CertificateAuthority string `json:"certificateAuthority"`
+		ClusterAuthToken     string `json:"clusterAuthToken"`
 	} `json:"connectionDetails"`
 	CreatedAt time.Time `json:"createdAt"`
 	ExpiresAt time.Time `json:"expiresAt"`

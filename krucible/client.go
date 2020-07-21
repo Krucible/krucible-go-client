@@ -172,6 +172,20 @@ func (c *Client) CreateCluster(createConfig CreateClusterConfig) (cluster Cluste
 	return
 }
 
+// DeleteCluster deletes a Krucible cluster with the given ID.
+func (c *Client) DeleteCluster(clusterID string) (err error) {
+	resp, err := c.makeRequest("DELETE", "/clusters/"+clusterID)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != 202 {
+		return fmt.Errorf("Could not delete cluster %s. Error code: %s", clusterID, resp.Status)
+	}
+
+	return nil
+}
+
 // NewClient creates a new Krucible client with the given connection
 // information.
 func NewClient(config ClientConfig) *Client {

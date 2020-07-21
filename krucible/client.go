@@ -84,10 +84,6 @@ func (c *Client) makeRequestWithBody(method, apiPath string, body interface{}) (
 	return resp, nil
 }
 
-type CreateSnapshotConfig struct {
-	ClusterID string `json:"clusterId"`
-}
-
 type CreateClusterConfig struct {
 	DisplayName string `json:"displayName"`
 
@@ -95,8 +91,6 @@ type CreateClusterConfig struct {
 	// for. If the cluster should run indefinitely then supply a nil pointer,
 	// otherwise an integer between 1 and 6 should be provided.
 	DurationInHours *int `json:"durationInHours"` // pointer because it could be null
-
-	SnapshotID string `json:"snapshotId,omitempty"`
 }
 
 // Cluster contains metadata about a Krucible cluster.
@@ -111,16 +105,6 @@ type Cluster struct {
 	} `json:"connectionDetails"`
 	CreatedAt time.Time `json:"createdAt"`
 	ExpiresAt time.Time `json:"expiresAt"`
-}
-
-type Snapshot struct {
-	ID      string `json:"id"`
-	Cluster struct {
-		ID          string `json:"id"`
-		DisplayName string `json:"displayName"`
-	} `json:"cluster"`
-	State     string    `json:"state"`
-	CreatedAt time.Time `json:"createdAt"`
 }
 
 // GetCluster fetches metadata about the given Krucible cluster.
@@ -185,25 +169,6 @@ func (c *Client) CreateCluster(createConfig CreateClusterConfig) (cluster Cluste
 	}
 
 	clientset, err = c.GetClusterClientset(cluster.ID)
-	return
-}
-
-func (c *Client) CreateSnapshot(createConfig CreateSnapshotConfig) (result Snapshot, err error) {
-	err = c.makeJSONRequestWithBody("POST", "/snapshots", createConfig, 202, &result)
-	return
-}
-
-func (c *Client) GetSnapshot(id string) (result Snapshot, err error) {
-	if id == "" {
-		return result, fmt.Errorf("Snapshot ID must be non-empty")
-	}
-
-	c.makeJSONRequest("GET", "/snapshots/"+id, 200, &result)
-	return
-}
-
-func (c *Client) GetSnapshots() (result []Snapshot, err error) {
-	err = c.makeJSONRequest("GET", "/snapshots/", 200, &result)
 	return
 }
 
